@@ -1,0 +1,234 @@
+# Core Pkg
+import streamlit as st
+import os
+
+# EDA Pkgs
+import pandas as pd
+import numpy as np
+import seaborn as sns 
+import matplotlib.pyplot as plt 
+import matplotlib
+matplotlib.use('Agg') 
+import joblib
+
+# Evaluation Packages
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import plot_confusion_matrix, plot_roc_curve, plot_precision_recall_curve
+from sklearn.metrics import precision_score, recall_score   
+
+#Styling
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+def remote_css(url):
+    st.markdown(f'<link href="{url}" rel="stylesheet">', unsafe_allow_html=True)    
+
+def icon(icon_name):
+    st.markdown(f'<i class="material-icons">{icon_name}</i>', unsafe_allow_html=True)
+
+local_css("style.css")
+remote_css('https://fonts.googleapis.com/icon?family=Material+Icons')
+
+#icon("search")
+#selected = st.text_input("", "Search...")
+#button_clicked = st.button("OK")
+
+@st.cache
+def load_data(dataset):
+	df = pd.read_csv(dataset)
+	return df
+
+
+def load_prediction_models(model_file):
+	loaded_model = joblib.load(open(os.path.join(model_file),"rb"))
+	return loaded_model
+
+ageLabel = {'sixteen_to_nineteen': 0, 'twenty_to_twenty_three': 1, 'twenty_four_to_twenty_seven': 2}
+genderLabel = {'male': 0, 'female': 1}
+internet_usageLabel = {'less than four hours': 0, 'four to nine hours': 1, 'above nine hours': 2}
+knowledge_of_internet_money_opportunitiesLabel = {'moderately aware': 0, 'very aware': 1}
+view_of_internet_money_opportunitiesLabel = {'Profitable': 0, 'Very Profitable': 1, 'Undecided': 2}
+friends_with_online_business_peopleLabel = {'yes': 0, 'no': 1}
+satisfaction_level_with_fin_statusLabel = {'Satisfied': 0, 'Not Satisfied': 1, 'Undecided': 2}
+celebration_of_wealthLabel = {'1': 0, '2': 1, '3': 2, '4': 3, '5':4}
+secrecyLabel = {'important': 0, 'Undecided': 1, 'not important': 2}
+smokingLabel = {'yes': 0, 'no': 1}
+alcoholLabel = {'yes': 0, 'no': 1}
+job_after_schoolLabel = {'worried': 0, 'not worried': 1, 'undecided': 2}
+parents_occupationLabel = {'Satisfactory': 0, 'Not Satisfactory': 1}
+family_social_classLabel = {'high class': 0, 'middle class': 1, 'lower class': 2}
+fameLabel = {'yes': 0, 'no': 1, 'maybe': 2}
+financial_prioritiesLabel = {'high': 0, 'low': 2}
+affirnityLabel = { 'yes': 0, 'no': 2}
+
+
+# Get the Keys
+def get_value(val,my_dict):
+	for key ,value in my_dict.items():
+		if val == key:
+			return value
+
+# Find the Key From Dictionary
+def get_key(val,my_dict):
+	for key ,value in my_dict.items():
+		if val == value:
+			return key
+encod_data = pd.read_csv('Data/New_Enconded_Data.csv')
+y = encod_data['affirnity']
+x = encod_data.drop(columns = ['affirnity'])
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.30, random_state=7)
+model = LogisticRegression()
+model.fit(x_train, y_train)
+
+def plot_metrics(metrics_list):
+    if 'Confusion Matrix' in metrics_list:
+        st.subheader("Confusion Matrix")
+        plot_confusion_matrix(model, x_test, y_test, display_labels=y)
+        st.pyplot()
+    if 'ROC Curve' in metrics_list:
+       	st.subheader("ROC Curve")
+       	plot_roc_curve(model, x_test, y_test)
+       	st.pyplot()
+    if 'Precision-Recall Curve' in metrics_list:
+     	st.subheader('Precision-Recall Curve')
+		#plot_precision_recall_curve(model, x_test, y_test)
+		#st.pyplot()
+
+def main():
+	"""Predicting Cyber-Crime Affirnity Among Undergraduates"""
+
+	st.title("A Machine Learning System for Predicting Cyber-Crime Affirnity")
+
+	activities = ['Exploratory Data Analysis','Prediction', 'Evaluation Metrics']
+	choices = st.sidebar.selectbox("Select Activity",activities)
+
+	if choices == 'Exploratory Data Analysis':
+		st.subheader("Exploratory Data Analysis")
+		data = load_data('Data/New_Refined_Data.csv')
+		st.dataframe(data.head(7))
+
+		if st.checkbox("Show Summary of Dataset"):
+			st.write(data.describe())
+
+		# Show Plots
+		if st.checkbox("Simple Value Plots "):
+			st.write(sns.countplot(data['affirnity']))
+			# Use Matplotlib to render seaborn
+			st.pyplot()
+
+		# Show Columns By Selection
+		if st.checkbox("Select Columns To Show"):
+			all_columns = data.columns.tolist()
+			selected_columns = st.multiselect('Select',all_columns)
+			new_df = data[selected_columns]
+			st.dataframe(new_df)
+
+		if st.checkbox("Pie Plot"):
+				all_columns_names = data.columns.tolist()
+				if st.button("Generate Pie Plot"):
+					st.write(data.iloc[:,-1].value_counts().plot.pie(autopct="%1.1f%%"))
+					st.pyplot()
+
+
+	if choices == 'Prediction':
+		st.subheader("Prediction")
+
+		age = st.selectbox('Enter Age',tuple(ageLabel.keys()))
+		gender = st.selectbox('Enter Gender',tuple(genderLabel.keys()))
+		internet_usage = st.selectbox('Number of Hours using Internet',tuple(internet_usageLabel.keys()))
+		knowledge_of_internet_money_opportunities = st.selectbox("knowledge_of_internet_money_opportunities",tuple(knowledge_of_internet_money_opportunitiesLabel.keys()))
+		#knowledge_of_internet_money_opportunities = st.number_input('Select Num of Persons',2,10)
+		view_of_internet_money_opportunities = st.selectbox("view_of_internet_money_opportunities",tuple(view_of_internet_money_opportunitiesLabel.keys()))
+		friends_with_online_business_people = st.selectbox('friends_with_online_business_people',tuple(friends_with_online_business_peopleLabel.keys()))
+		satisfaction_level_with_fin_status = st.selectbox('satisfaction_level_with_fin_status',tuple(satisfaction_level_with_fin_statusLabel.keys()))
+		celebration_of_wealth = st.selectbox('celebration_of_wealth',tuple(celebration_of_wealthLabel.keys()))
+		secrecy = st.selectbox('secrecy',tuple(secrecyLabel.keys()))
+		smoking = st.selectbox('smoking',tuple(smokingLabel.keys()))
+		alcohol = st.selectbox('alcohol',tuple(alcoholLabel.keys()))
+		job_after_school = st.selectbox('job_after_school',tuple(job_after_schoolLabel.keys()))
+		parents_occupation = st.selectbox('parents_occupation',tuple(parents_occupationLabel.keys()))
+		family_social_class = st.selectbox('family_social_class',tuple(family_social_classLabel.keys()))
+		fame = st.selectbox('Love for Fame and High Class',tuple(fameLabel.keys()))
+		financial_priorities = st.selectbox('financial_priorities',tuple(financial_prioritiesLabel.keys()))
+
+		k_age = get_value(age,ageLabel)
+		k_gender = get_value(gender,genderLabel)
+		k_internet_usage = get_value(internet_usage,internet_usageLabel)
+		k_knowledge_of_internet_money_opportunities = get_value(knowledge_of_internet_money_opportunities, knowledge_of_internet_money_opportunitiesLabel)
+		k_view_of_internet_money_opportunities = get_value(view_of_internet_money_opportunities,view_of_internet_money_opportunitiesLabel)
+		k_friends_with_online_business_people = get_value(friends_with_online_business_people, friends_with_online_business_peopleLabel)
+		k_satisfaction_level_with_fin_status = get_value(satisfaction_level_with_fin_status,satisfaction_level_with_fin_statusLabel)
+		k_celebration_of_wealth = get_value(celebration_of_wealth,celebration_of_wealthLabel)
+		k_secrecy = get_value(secrecy,secrecyLabel)
+		k_smoking = get_value(smoking,smokingLabel)
+		k_alcohol = get_value(alcohol,alcoholLabel)
+		k_job_after_school = get_value(job_after_school,job_after_schoolLabel)
+		k_parents_occupation = get_value(parents_occupation,parents_occupationLabel)
+		k_family_social_class = get_value(family_social_class,family_social_classLabel)
+		k_fame = get_value(fame,fameLabel)
+		k_financial_priorities = get_value(financial_priorities,financial_prioritiesLabel)
+
+		
+		pretty_data = {
+		"Age":age,
+		"Gender":gender,
+		"Internet Usage":internet_usage,
+		"Knowledge of internet money opportunities":knowledge_of_internet_money_opportunities,
+		"view_of_internet_money_opportunities":view_of_internet_money_opportunities,
+		"friends_with_online_business_people":friends_with_online_business_people,
+		"satisfaction_level_with_fin_status":satisfaction_level_with_fin_status,
+		"celebration_of_wealth":celebration_of_wealth,
+		"secrecy":secrecy,
+		"smoking":smoking,
+		"alcohol":alcohol,
+		"job_after_school":job_after_school,
+		"parents_occupation":parents_occupation,
+		"family_social_class":family_social_class,
+		"Love for Fame":fame,
+		"financial_priorities":financial_priorities
+		}
+		st.subheader("Student's Attributes Entered for Prediction")
+		st.json(pretty_data)
+
+		#st.subheader("Data Encoded As")
+		# Data To Be Used
+		sample_data = [k_age,k_gender,k_internet_usage,k_knowledge_of_internet_money_opportunities,k_view_of_internet_money_opportunities,k_friends_with_online_business_people,k_satisfaction_level_with_fin_status,k_celebration_of_wealth,k_secrecy,k_smoking,k_alcohol,k_job_after_school,k_parents_occupation,k_family_social_class,k_fame,k_financial_priorities]
+		#st.write(sample_data)
+
+		prep_data = np.array(sample_data).reshape(1, -1)
+
+		model_choice = st.selectbox(" Select Model for Prediction",['Logistic Regression','Decision Tree','Random Forest'])
+		if st.button('PREDICT'):
+			if model_choice == 'Logistic Regression':
+				predictor = load_prediction_models("models/logit.pkl")
+				prediction = predictor.predict(prep_data)
+				yhat_prob = predictor.predict_proba(prep_data)
+				st.write(prediction)
+				st.write(yhat_prob)
+
+			if model_choice == 'Decision Tree':
+				predictor = load_prediction_models("models/dt_model.pkl")
+				prediction = predictor.predict(prep_data)
+				yhat_prob = predictor.predict_proba(prep_data)
+				st.write(prediction)
+				st.write(yhat_prob)
+
+			if model_choice == 'Random Forest':
+				predictor = load_prediction_models("models/random.pkl")
+				prediction = predictor.predict(prep_data)
+				yhat_prob = predictor.predict_proba(prep_data)
+				st.write(prediction)
+				st.write(yhat_prob)
+
+			final_result = get_key(prediction,affirnityLabel)
+			st.success(final_result)
+	if choices == 'Evaluation Metrics':
+		st.subheader("Evaluation Metrics")
+		metrics = st.multiselect("Select Evaluation Metrics to Plot", ('Confusion Matrix', 'ROC Curve', 'Precision-Recall Curve'))
+		plot_metrics(metrics)
+
+	
+if __name__ == '__main__':
+	main()
